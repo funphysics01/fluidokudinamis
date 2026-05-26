@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FLUIDOKU STATIS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+      --bg-color: #243b55;         
+      --panel-bg: rgba(43, 67, 109, 0.8); 
+      --neon-cyan: #80D1F3;      
+      --neon-orange: #FFAC1C;    
+      --neon-red: #F696A6;       
+      --neon-green: #00FF66;     
+      --neon-blue: #4A90E2; 
+      --neon-yellow: #FFF000;
+      --text-light: #FFFFFF;
+    }
+  
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-color);
+      background-image: radial-gradient(circle at 50% 50%, #3a5685 0%, #243b55 100%);
+      color: var(--text-light);
+      margin: 0;
+      padding: 10px;
+      min-height: 100vh;
+    }
+
+    .header {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--neon-cyan);
+      text-align: center;
+      font-size: 28px;
+      padding: 15px 0;
+      letter-spacing: 4px;
+      text-shadow: 0 0 15px var(--neon-cyan);
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(128, 209, 243, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .sudoku-grid { 
+      display: grid; 
+      grid-template-columns: repeat(6, 1fr); 
+      gap: 4px; 
+      background: var(--neon-cyan); 
+      padding: 4px; 
+      border-radius: 8px; 
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(128, 209, 243, 0.2);
+    }
+
+    .cell { 
+      aspect-ratio: 1/1;
+      background: #253655;
+      color: white; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      font-family: 'Orbitron', sans-serif; 
+      transition: 0.2s; 
+    }
+
+    .cell:hover {
+      background: #31466d;
+    }
+
+    .cell.prefilled { 
+      background: #162235; 
+      color: var(--neon-cyan); 
+      cursor: default; 
+    }
+
+    .cell.highlight-axis { background: #3d5685 !important; }
+    .cell.highlight-match { 
+      background: rgba(128, 209, 243, 0.4) !important; 
+      box-shadow: inset 0 0 10px var(--neon-cyan); 
+    }
+
+    .btn-primary { 
+      background: var(--neon-cyan); 
+      color: #1a2a44; 
+      box-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    .btn-primary:hover {
+      background: #fff;
+      box-shadow: 0 0 20px var(--neon-cyan);
+    }
+
+    .btn-reset { 
+      border: 2px solid var(--neon-red); 
+      background: transparent; 
+      color: var(--neon-red); 
+    }
+
+    .btn-reset:hover {
+      background: var(--neon-red);
+      color: white;
+    }
+
+    .btn-csv { 
+      border: 2px solid var(--neon-orange); 
+      background: transparent; 
+      color: var(--neon-orange); 
+    }
+
+    .btn-outline-cyan {
+      background: rgba(128, 209, 243, 0.1);
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+    }
+
+    .btn-outline-cyan:hover {
+      background: var(--neon-cyan);
+      color: #1a2a44;
+    }
+
+    .bottom-buttons .btn {
+      font-size: 11px;
+      padding: 8px;
+      border: 1px solid currentColor;
+    }
+
+    .notif-toast { 
+      background: var(--panel-bg); 
+      border-left: 4px solid var(--neon-cyan); 
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+
+    input {
+      background: #162235 !important;
+      border: 1px solid var(--neon-blue) !important;
+      color: white !important;
+    }
+
+    .achievement-badge {
+      border: 1px solid var(--neon-orange);
+      background: rgba(255, 149, 49, 0.1);
+      color: var(--neon-orange);
+    }
+
+    .avatar-sm {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: 8px;
+      border: 1px solid var(--neon-cyan);
+    }
+
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid rgba(128, 209, 243, 0.1);
+      font-size: 13px;
+    }
+
+    .correct-glow { 
+      border: 2px solid var(--neon-green) !important; 
+      box-shadow: 0 0 15px var(--neon-green) !important; 
+    }
+    .wrong-shake { 
+      border: 2px solid var(--neon-red) !important; 
+      box-shadow: 0 0 15px var(--neon-red) !important; 
+    }
+
+    .game-container { display: none; flex-direction: 
+      column; gap: 15px; max-width: 1200px; margin: 0 auto; 
+      }
+    @media (min-width: 991px) {
+      .game-container { flex-direction: column; align-items: 
+        center; justify-content: center; padding: 20px; 
+      }
+      .main-content-wrapper { width: 100%; max-width: 500px; margin: 0 auto; }
+    }
+    .sudoku-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(26, 42, 68, 0.9); display: flex; align-items: 
+      center; justify-content: center; z-index: 999; padding: 20px; box-sizing: border-box; overflow-y: auto;
+    }
+    .modal.hidden { display: none; }
+    .modal-content { background: var(--panel-bg); border: 1px solid var(--neon-cyan); 
+      border-radius: 12px; width: 100%; max-width: 450px; padding: 20px; box-sizing: border-box;
+      max-height: 90vh; overflow-y: auto; margin: auto; position: relative;
+    }
+    #questionText img, #pembahasanText img {
+      max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto 10px;
+    }
+    .btn { width: 100%; padding: 10px; border-radius: 8px; font-weight: 600; 
+      cursor: pointer; transition: 0.3s; border: 1px solid transparent; margin-top: 5px; 
+    }
+    .cell.answered-by-you { color: var(--neon-green); text-shadow: 0 0 8px var(--neon-green); }
+    .cell.answered-by-other { color: var(--neon-orange); background: rgba(255, 149, 49, 0.1); }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+  
+<body>
+  <div class="header">FLUIDOKU</div>
+  <div id="notifArea"></div>
+  
+  <div id="modeSelectionArea" class="panel" style="max-width: 400px; margin: 20px auto; text-align: center;">
+    <h3 style="color: var(--neon-yellow)">MENU UTAMA</h3>
+    <button class="btn btn-primary" style="margin-bottom: 10px;" onclick="showAuth('host')">BUAT PERMAINAN BARU</button>
+    <button class="btn btn-outline-cyan" onclick="showAuth('player')">GABUNG PERMAINAN</button>
+  </div>
+
+  <div id="authHost" class="panel" style="display: none; max-width: 400px; margin: 20px auto; text-align: center;">
+    <h3 style="color: var(--neon-orange)">BUAT ROOM</h3>
+    <input type="text" id="hostName" placeholder="Nama Anda" style="margin-bottom:15px; 
+      padding:12px; width:100%; box-sizing:border-box; background:#000; 
+      border:1px solid var(--neon-blue); color:#fff; border-radius:6px;">
+    <button class="btn btn-primary" onclick="createRoom()">BUAT & MASUK</button>
+    <button class="btn btn-reset" style="margin-top:10px;" onclick="backToMode()">KEMBALI</button>
+  </div>
+
+  <div id="authPlayer" class="panel" style="display: none; max-width: 400px; margin: 20px auto; text-align: center;">
+    <h3 style="color: var(--neon-cyan)">GABUNG ROOM</h3>
+    <input type="text" id="playerName" placeholder="Nama Anda" style="margin-bottom:10px; 
+      padding:12px; width:100%; box-sizing:border-box; background:#000; 
+      border:1px solid var(--neon-blue); color:#fff; border-radius:6px;">
+    <input type="text" id="roomCodeInput" placeholder="Kode Room (Contoh: X7K9A)" style="margin-bottom:15px; 
+      padding:12px; width:100%; box-sizing:border-box; background:#000; text-transform: uppercase;
+      border:1px solid var(--neon-blue); color:#fff; border-radius:6px;">
+    <button class="btn btn-primary" onclick="joinRoom()">GABUNG</button>
+    <button class="btn btn-reset" style="margin-top:10px;" onclick="backToMode()">KEMBALI</button>
+  </div>
+  <div id="lobbyArea" class="panel" style="display: none; max-width: 400px; margin: 20px auto; text-align: center;">
+    <h2 id="lobbyTitle" style="margin-bottom: 5px;">Ruang Tunggu</h2>
+    <div id="roomCodeDisplay" style="color: var(--neon-cyan); font-family: 'Orbitron'; font-size: 20px; letter-spacing: 2px; margin-bottom: 15px;"></div>
+    <div id="myAvatarContainer" style="margin-bottom:15px;"></div>
+    <div id="playerCount" style="color: var(--neon-yellow); font-weight: bold; 
+      margin-bottom:10px;">0 Pemain Terhubung</div>
+    <div id="lobbyPlayerList" style="display: flex; flex-wrap: wrap; 
+      justify-content: center; gap: 10px; margin-bottom:20px;"></div>
+    <div id="hostControls" style="display: none;">
+        <button class="btn btn-primary" onclick="triggerStartGame()">MULAI PERMAINAN</button>
+    </div>
+  </div>
+
+<div id="mainGameArea" class="game-container">
+    <div class="main-content-wrapper" style="display: flex; flex-direction: column; gap: 15px;">
+      <div id="sidePanel" class="side-stats" style="display: flex; gap: 10px;">
+        <div class="panel" style="flex: 1; text-align: center;">
+          <div style="color:var(--neon-cyan); font-size: 11px; text-transform: uppercase;">ROOM</div>
+          <div id="gameRoomCode" style="font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight:
+            bold; color: var(--neon-cyan);">-----</div>
+        </div>
+        <div class="panel" style="flex: 1; text-align: center;">
+          <div style="color:var(--neon-green); font-size: 11px; text-transform: uppercase;">SKOR</div>
+          <div id="score" style="font-size: 18px; font-weight: bold; white-space: nowrap; overflow:
+            hidden; text-overflow: ellipsis;">0</div>
+          <div id="comboText" style="display: none; font-size: 10px; color: var(--neon-orange);">KOMBO X<span id="comboVal">0</span></div>
+        </div>
+        <div class="panel" style="flex: 1; text-align: center;">
+          <div style="color:var(--neon-red); font-size: 11px; text-transform: uppercase;">WAKTU</div>
+          <div id="playerTimer" style="font-size: 18px; font-weight: bold; color: var(--neon-red);">00:00</div>
+      </div>
+
+      <div class="sudoku-wrapper">
+        <div id="grid" class="sudoku-grid"></div>
+        <div class="bottom-buttons" style="display:flex; gap:10px; width:100%; max-width:400px; margin-top:15px;">
+          <button id="btnFinish" class="btn btn-primary" onclick="triggerFinishGame()" 
+            style="background: var(--neon-green); display:none;">SELESAI</button>
+          <button id="btnReset" class="btn btn-reset" onclick="resetGameData()" 
+            style="display:none; font-size: 10px; padding: 8px;">RESET ROOM</button>
+          <button id="btnDownload" class="btn btn-csv" onclick="downloadCSV()" 
+            style="display:none; font-size: 10px; padding: 8px;">REKAP</button>
+        </div>
+      </div>
+
+      <div class="panel scoring-rules" style="border-color: rgba(255, 215, 0, 0.3);">
+        <h4 style="font-family: 'Orbitron'; color: var(--neon-yellow); text-align:center; 
+          margin: 0 0 10px 0; font-size: 14px;">ATURAN SKOR</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; text-transform: uppercase;">
+          <div>🔢 Angka Benar <span style="color:var(--neon-green); float:right;">+25</span></div>
+          <div>❌ Angka Salah <span style="color:var(--neon-red); float:right;">-10</span></div>
+          <div>🧠 Soal Benar <span style="color:var(--neon-green); float:right;">+50</span></div>
+          <div>⚠️ Soal Salah <span style="color:var(--neon-red); float:right;">-25</span></div>
+          <div>🔥 Kombo 2x <span style="color:var(--neon-orange); float:right;">+10</span></div>
+          <div>⚡ Kombo 3x <span style="color:var(--neon-cyan); float:right;">+25</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h4 style="font-family: 'Orbitron'; color: var(--neon-cyan); text-align:center; 
+          margin: 0 0 10px 0; font-size: 14px;">PERINGKAT</h4>
+        <div id="leaderboardList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="numberModal" class="modal hidden">
+    <div class="modal-content" style="max-width: 280px; text-align: center;">
+        <h3 style="color: var(--neon-cyan); margin-top:0;">PILIH ANGKA</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0;">
+            <button class="btn btn-outline-cyan" onclick="selectNumber(1)">1</button>
+            <button class="btn btn-outline-cyan" onclick="selectNumber(2)">2</button>
+            <button class="btn btn-outline-cyan" onclick="selectNumber(3)">3</button>
+            <button class="btn btn-outline-cyan" onclick="selectNumber(4)">4</button>
+            <button class="btn btn-outline-cyan" onclick="selectNumber(5)">5</button>
+            <button class="btn btn-outline-cyan" onclick="selectNumber(6)">6</button>
+        </div>
+        <button class="btn btn-reset" onclick="closeModal('numberModal')">BATAL</button>
+    </div>
+  </div>
+
+  <div id="questionModal" class="modal hidden">
+    <div class="modal-content">
+        <h3 style="color: var(--neon-cyan); margin-top:0; font-size: 18px;">SOAL FISIKA</h3>
+        <div id="questionText" style="margin: 15px 0; font-size:14px; line-height: 1.5;"></div>
+        <div id="optionsArea" style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 15px;"></div>
+        <button class="btn btn-reset" onclick="closeModal('questionModal')">BATAL</button>
+    </div>
+  </div>
+
+  <div id="pembahasanModal" class="modal hidden">
+    <div class="modal-content">
+        <h3 style="color: var(--neon-green); margin-top:0; font-size: 18px; text-align: center;">PEMBAHASAN</h3>
+        <div id="pembahasanText" style="margin: 15px 0;"></div>
+        <button class="btn btn-primary" onclick="closeModal('pembahasanModal')">LANJUT</button>
+    </div>
+  </div>
+
+  <div id="finalModal" class="modal hidden">
+    <div class="modal-content" style="text-align: center;">
+        <h2 style="color: var(--neon-green); font-family: 'Orbitron'; margin-bottom: 5px;">GAME OVER</h2>
+        <div id="achievementArea" style="margin-bottom: 15px;">
+           <div style="color: var(--neon-yellow); font-size: 12px; margin-bottom: 5px;">YOUR ACHIEVEMENTS:</div>
+           <div id="achievementList"></div>
+        </div>
+        <div id="finalLeaderboardList" style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 8px; margin: 15px 0; text-align:left;"></div>
+        <button class="btn btn-primary" onclick="window.location.reload()">KE MENU UTAMA</button>
+    </div>
+  </div>
+  
+  <script>
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vReECKxgkKKOyE30wrZ1hI4a0Eo4naHaigZJ7EZe-KALKUsPJq_4pPPJc0eus6n_Sd5WVeijlYcKVBY/pub?output=csv";
+    const firebaseConfig = {
+      apiKey: "AIzaSyCPCrzZdSagRT8_Gj8bjDvE582B4s8y9nA",
+      authDomain: "fluidoku-2.firebaseapp.com",
+      databaseURL: "https://fluidoku-2-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "fluidoku-2",
+      storageBucket: "fluidoku-2.firebasestorage.app",
+      messagingSenderId: "778022570190",
+      appId: "1:778022570190:web:320a47ace9994f4f27689f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    let isHost = false;
+    let currentRoomCode = "";
+    let currentPlayer = "";
+    let score = 0;
+    let comboCount = 0;
+    let timerInterval;
+    let totalSeconds = 0;
+    let sudokuSolution = [];
+    let prefilledCells = [];
+    let soalMap = {};
+    let jawabanMap = {};
+    let pembahasanMap = {};
+    let soalCells = [];
+    let soalOrder = [];
+    let myAnsweredSoal = [];
+    let currentSelectedCell = null;
+    let playerAvatar = "";
+
+    let physicsWrongCount = 0;
+    let physicsCorrectCount = 0;
+    let maxComboEver = 0;
+    const soundCorrect = new Audio('https://github.com/funphysics01/Fluidoku-Statis/raw/refs/heads/main/sound/freesound_community-funny-yay-6273.mp3'); 
+    const soundWrong = new Audio('https://github.com/funphysics01/Fluidoku-Statis/raw/refs/heads/main/sound/freesound_community-buzzer2-6109.mp3');
+
+    // =========== FUNGSI NAVIGASI MENU ===========
+    function showAuth(mode) {
+      document.getElementById('modeSelectionArea').style.display = 'none';
+      if (mode === 'host') {
+        document.getElementById('authHost').style.display = 'block';
+      } else {
+        document.getElementById('authPlayer').style.display = 'block';
+      }
+    }
+
+    function backToMode() {
+      document.getElementById('authHost').style.display = 'none';
+      document.getElementById('authPlayer').style.display = 'none';
+      document.getElementById('modeSelectionArea').style.display = 'block';
+    }
+
+    function generateRoomCode() {
+        return Math.random().toString(36).substring(2, 7).toUpperCase();
+    }
+    // ============================================
+
+    // Fungsi Untuk Buat Room (Host)
+    function createRoom() {
+      const name = document.getElementById("hostName").value.trim();
+      if (!name) return alert("Isi nama dulu!");
+
+      currentPlayer = name;
+      isHost = true;
+      currentRoomCode = generateRoomCode();
+      playerAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${name}`;
+
+      // Set state awal room
+      database.ref(`rooms/${currentRoomCode}/roomControl`).set({ 
+        isStarted: false, 
+        isFinished: false, 
+        isReset: false 
+      });
+      
+      database.ref(`rooms/${currentRoomCode}/players/${name}`).set({ name, avatar: playerAvatar, isHost });
+
+      masukKeLobby();
+    }
+
+    // Fungsi Untuk Gabung Room (Player)
+    function joinRoom() {
+      const name = document.getElementById("playerName").value.trim();
+      const code = document.getElementById("roomCodeInput").value.trim().toUpperCase();
+      
+      if (!name) return alert("Isi nama dulu!");
+      if (!code) return alert("Isi kode room!");
+
+      database.ref(`rooms/${code}`).once('value', snapshot => {
+          if (snapshot.exists()) {
+              currentPlayer = name;
+              isHost = false;
+              currentRoomCode = code;
+              playerAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${name}`;
+              
+              database.ref(`rooms/${currentRoomCode}/players/${name}`).set({ name, avatar: playerAvatar, isHost });
+              masukKeLobby();
+          } else {
+              alert("Kode Room tidak ditemukan! Pastikan kode sudah benar.");
+          }
+      });
+    }
+
+    // Transisi ke Lobby setelah Auth
+    function masukKeLobby() {
+      document.getElementById("authHost").style.display = "none";
+      document.getElementById("authPlayer").style.display = "none";
+      document.getElementById("lobbyArea").style.display = "block";
+      
+      document.getElementById("roomCodeDisplay").innerText = "KODE: " + currentRoomCode;
+      document.getElementById("myAvatarContainer").innerHTML = `<img src="${playerAvatar}" style="width:70px;"><br><b>${currentPlayer}</b>`;
+      
+      if (isHost) document.getElementById("hostControls").style.display = "block";
+      
+      sendNotification(`🎮 ${currentPlayer} bergabung ke permainan!`);
+      listenToGameEvents();
+      listenToLobby();
+      listenNotifications();
+    }
+
+    function listenToLobby() {
+        database.ref(`rooms/${currentRoomCode}/players`).on('value', snap => {
+            const players = Object.values(snap.val() || {});
+            document.getElementById("playerCount").innerText = `${players.length} Pemain Bergabung`;
+            const list = document.getElementById("lobbyPlayerList");
+            list.innerHTML = "";
+            players.forEach(p => {
+                list.innerHTML += `<div style="text-align:center; width:60px;"><img src="${p.avatar}" style="width:30px; 
+                border-radius:50%"><div style="font-size:10px; overflow:hidden;">${p.name}</div></div>`;
+            });
+        });
+    }
+
+    function listenToGameEvents() {
+      database.ref(`rooms/${currentRoomCode}/roomControl/isStarted`).on('value', snap => { if (snap.val() === true) proceedToGame(); });
+      database.ref(`rooms/${currentRoomCode}/roomControl/isFinished`).on('value', snap => { if (snap.val() === true) showFinalScreen(); });
+      database.ref(`rooms/${currentRoomCode}/roomControl/isReset`).on('value', snap => { if (snap.val() === true) window.location.reload(); });
+    }
+
+    async function triggerStartGame() {
+      if (!isHost) return;
+      await fetchSoal();
+      const sudoku = generateSudoku();
+      const prefilled = pickRandom(36, 14);
+      const totalSoal = Math.min(15, Object.keys(soalMap).length);
+      const sCells = pickRandomExclude(36, totalSoal, prefilled);
+      const sOrder = shuffle([...Array(Object.keys(soalMap).length).keys()]).slice(0, totalSoal);
+      
+      await database.ref(`rooms/${currentRoomCode}/gameState`).set({ 
+          sudokuSolution: sudoku, 
+          prefilledCells: prefilled, 
+          soalCells: sCells, 
+          soalOrder: sOrder 
+      });
+      database.ref(`rooms/${currentRoomCode}/roomControl`).update({ isStarted: true });
+      sendNotification("🚀 Permainan dimulai!");
+    }
+    
+    async function proceedToGame() {
+      const snap = await database.ref(`rooms/${currentRoomCode}/gameState`).once('value');
+      const data = snap.val();
+      if (!data) return; 
+      
+      document.getElementById("lobbyArea").style.display = "none";
+      document.getElementById("mainGameArea").style.display = "flex";
+      
+      if (isHost) {
+        document.getElementById("btnFinish").style.display = "block";
+        document.getElementById("btnReset").style.display = "block";
+        document.getElementById("btnDownload").style.display = "block";
+      } 
+      startTimer();
+      sudokuSolution = data.sudokuSolution;
+      prefilledCells = data.prefilledCells;
+      soalCells = data.soalCells;
+      soalOrder = data.soalOrder;
+      await fetchSoal(); 
+      document.getElementById("gameRoomCode").innerText = currentRoomCode;
+      renderGrid();
+      initLeaderboard();
+      listenMoves();
+    }
+
+    async function fetchSoal() {
+      try {
+        const res = await fetch(SHEET_CSV_URL);
+        const text = await res.text();
+        const rows = text.split('\n').slice(1);
+        rows.forEach((row, idx) => {
+          const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+          if (cols.length >= 3) {
+            soalMap[idx] = cols.slice(0, -2).join(',').replace(/^"|"$/g, '');
+            jawabanMap[idx] = cols[cols.length-2].replace(/^"|"$/g, '').trim().toLowerCase();
+            pembahasanMap[idx] = cols[cols.length-1].replace(/^"|"$/g, '').trim();
+          } else if (cols.length === 2) {
+            soalMap[idx] = cols.slice(0, -1).join(',').replace(/^"|"$/g, '');
+            jawabanMap[idx] = cols[cols.length-1].replace(/^"|"$/g, '').trim().toLowerCase();
+            pembahasanMap[idx] = "";
+          }
+        });
+      } catch (e) { console.error("Error CSV"); }
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      for (let i = 0; i < 36; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.id = `cell-${i}`;
+        cell.onmouseenter = () => highlightOnHover(i);
+        cell.onmouseleave = () => clearHighlight();
+        if (prefilledCells.includes(i)) {
+          cell.textContent = sudokuSolution[Math.floor(i/6)][i%6];
+          cell.classList.add('prefilled');
+        } else {
+          cell.onclick = () => { currentSelectedCell = i; 
+          document.getElementById('numberModal').classList.remove('hidden'); };
+        }
+        grid.appendChild(cell);
+      }
+    }
+
+    function selectNumber(num) {
+      closeModal('numberModal');
+      const idx = currentSelectedCell;
+      const cell = document.getElementById(`cell-${idx}`);
+      const correct = sudokuSolution[Math.floor(idx/6)][idx%6];
+      if (parseInt(num) === correct) {
+        if (soalCells.includes(idx)) {
+          openQuestionModal(idx, num);
+        } else {
+          soundCorrect.play();
+          cell.classList.add('correct-glow');
+          setTimeout(() => cell.classList.remove('correct-glow'), 600);
+          comboCount++;
+          if(comboCount > maxComboEver) maxComboEver = comboCount;
+            updateComboUI();
+            submitMove(idx, num, calculatePoints(false));
+          }
+      } else {
+        soundWrong.play();
+        comboCount = 0; updateComboUI();
+        cell.classList.add('wrong-shake');
+        setTimeout(() => cell.classList.remove('wrong-shake'), 400);
+        score -= 10; updateScore();
+      }
+    }
+
+    function openQuestionModal(idx, num) {
+      const sIdx = soalOrder[soalCells.indexOf(idx)];
+      const question = soalMap[sIdx];
+      const modal = document.getElementById('questionModal');
+      document.getElementById('questionText').innerHTML = question.includes("http") 
+        ? `<img src="${question}" style="width:100%">` : question;
+      const optArea = document.getElementById('optionsArea');
+      optArea.style.display = "grid";
+      optArea.style.gridTemplateColumns = "repeat(5, 1fr)"; 
+      optArea.style.gap = "8px";
+      optArea.innerHTML = '';
+      ['a','b','c','d','e'].forEach(opt => {
+        const b = document.createElement('button');
+        b.className = 'btn btn-outline-cyan'; b.innerText = opt.toUpperCase();
+        b.onclick = () => {
+          if (opt === jawabanMap[sIdx]) {
+            soundCorrect.play();
+            physicsCorrectCount++;
+            comboCount++;
+            if(comboCount > maxComboEver) maxComboEver = comboCount;
+              updateComboUI();
+              myAnsweredSoal.push(sIdx + 1);
+              submitMove(idx, num, calculatePoints(true));
+              modal.classList.add('hidden');
+
+              if (pembahasanMap[sIdx] && pembahasanMap[sIdx] !== "") {
+                  document.getElementById('pembahasanText').innerHTML = `<img src="${pembahasanMap[sIdx]}" alt="Pembahasan Soal">`;
+                  document.getElementById('pembahasanModal').classList.remove('hidden');
+              }
+          } else {
+            soundWrong.play();
+            physicsWrongCount++;
+            comboCount = 0; updateComboUI();
+            score -= 25; updateScore();
+            modal.classList.add('hidden');
+            // Menghapus alert teks dan membiarkan penalti nilai yang menjadi feedback
+          }
+        };
+        optArea.appendChild(b);
+      });
+      modal.classList.remove('hidden');
+    }
+
+    function evaluateAchievements(sortedLeaderboard) {
+      const list = document.getElementById('achievementList');
+      list.innerHTML = "";
+      const badges = [];
+      if (physicsCorrectCount > 0 && physicsWrongCount === 0) badges.push("🧠 Perfect Physics");
+      if (maxComboEver >= 3) badges.push("🔥 Combo Master");
+      if (sortedLeaderboard[0] && sortedLeaderboard[0].name === currentPlayer) badges.push("👑 Top Rank");
+      
+      if (badges.length === 0) {
+        list.innerHTML = "<div style='font-size:12px; color:gray;'>Terus berjuang untuk dapat badge!</div>";
+      } else {
+        badges.forEach(b => {
+          list.innerHTML += `<span class="achievement-badge">${b}</span>`;
+        });
+      }
+    }
+
+    function showFinalScreen() {
+      clearInterval(timerInterval);
+      document.getElementById('grid').classList.add('locked');
+      database.ref(`rooms/${currentRoomCode}/leaderboard`).once('value', snap => {
+        const data = Object.values(snap.val() || {}).sort((a,b) => b.score - a.score);
+        if(!isHost) {
+          evaluateAchievements(data); document.getElementById('finalModal').classList.remove('hidden');
+        }
+      });
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        totalSeconds++;
+        const m = Math.floor(totalSeconds/60).toString().padStart(2,'0');
+        const s = (totalSeconds%60).toString().padStart(2,'0');
+        document.getElementById('playerTimer').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    function calculatePoints(isPhysics) {
+      let pts = isPhysics ? 50 : 25;
+      if (comboCount === 2) pts += 10;
+      if (comboCount >= 3) pts += 25;
+      return pts;
+    }
+
+    function updateComboUI() {
+        const txt = document.getElementById('comboText');
+        document.getElementById('comboVal').innerText = comboCount;
+        txt.style.display = comboCount > 1 ? "block" : "none";
+    }
+
+    function submitMove(idx, num, pts) {
+        score += pts; updateScore();
+        database.ref(`rooms/${currentRoomCode}/answers/${idx}`).set({ player: currentPlayer, number: num });
+        const type = pts > 25 ? "🧠" : "🔢";
+        sendNotification(`${type} ${currentPlayer} menjawab kotak (+${pts})`);
+    }
+
+    function updateScore() {
+      document.getElementById('score').textContent = score;
+      database.ref(`rooms/${currentRoomCode}/leaderboard/${currentPlayer}`).set({ 
+          name: currentPlayer, score, 
+          avatar: playerAvatar, answeredQuestions: myAnsweredSoal.join('|') 
+      });
+    }
+    
+    function initLeaderboard() {
+      database.ref(`rooms/${currentRoomCode}/leaderboard`).on('value', snap => {
+        const list = document.getElementById("leaderboardList");
+        const finalist = document.getElementById("finalLeaderboardList");
+        list.innerHTML = ""; finalist.innerHTML = "";
+        const data = Object.values(snap.val() || {}).sort((a,b) => b.score - a.score);
+        data.forEach((e, i) => {
+          const html = `<div class="leaderboard-item"><span>${i+1}. 
+          <img src="${e.avatar}" class="avatar-sm"> ${e.name}</span><b>${e.score}</b></div>`;
+          list.innerHTML += html; finalist.innerHTML += html;
+        });
+      });
+    }
+
+    function listenMoves() {
+      database.ref(`rooms/${currentRoomCode}/answers`).on("value", snap => {
+        const moves = snap.val() || {};
+        Object.entries(moves).forEach(([idx, m]) => {
+          const cell = document.getElementById(`cell-${idx}`);
+          if (cell) {
+            cell.textContent = m.number;
+            cell.classList.add(m.player === currentPlayer ? "answered-by-you" : "answered-by-other");
+            cell.onclick = null;
+          }
+        });
+      });
+    }
+    
+    function highlightOnHover(index) {
+      const cell = document.getElementById(`cell-${index}`);
+      const val = cell.textContent.trim();
+      const row = Math.floor(index / 6);
+      const col = index % 6;
+      for (let i = 0; i < 36; i++) {
+        const t = document.getElementById(`cell-${i}`);
+        const tR = Math.floor(i / 6);
+        const tC = i % 6;
+        if (tR === row || tC === col) t.classList.add('highlight-axis');
+        if (val !== "" && t.textContent.trim() === val) t.classList.add('highlight-match');
+      }
+    }
+
+    function clearHighlight() { 
+      document.querySelectorAll('.cell').forEach(c => c.classList.remove('highlight-axis', 'highlight-match')); 
+    }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function sendNotification(msg) { database.ref(`rooms/${currentRoomCode}/notifications`).push({ text: msg, time: Date.now() }); }
+    let gameSessionStart = Date.now();
+    function listenNotifications() {
+      database.ref(`rooms/${currentRoomCode}/notifications`).limitToLast(5).on('child_added', snap => {
+        const d = snap.val();
+        if (d.time > gameSessionStart - 5000) {
+          const area = document.getElementById('notifArea');
+          const t = document.createElement('div');
+          t.className = 'notif-toast'; t.innerText = d.text;
+          area.appendChild(t);
+          setTimeout(() => {t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 4000);
+        }
+      });
+    }
+    function triggerFinishGame() { if (confirm("Akhiri game di Room ini?")) database.ref(`rooms/${currentRoomCode}/roomControl/isFinished`).set(true); }
+    async function resetGameData() {
+      if (confirm("Reset seluruh data di Room ini?")) {
+        await database.ref(`rooms/${currentRoomCode}`).remove(); // HANYA HAPUS ROOM INI
+        window.location.reload();
+      }
+    }
+
+    function downloadCSV() {
+      database.ref(`rooms/${currentRoomCode}/leaderboard`).once('value', snap => {
+        let csv = "Nama,Skor,Soal\n";
+        Object.values(snap.val() || {}).forEach(e => csv += `${e.name},${e.score},"${e.answeredQuestions || '-'}"\n`);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = `REKAP_FLUIDOKU_ROOM_${currentRoomCode}.csv`; a.click();
+      });
+    }
+
+    function generateSudoku() {
+      const base = [[1,2,3,4,5,6],[4,5,6,1,2,3],[2,3,1,5,6,4],[5,6,4,2,3,1],[3,1,2,6,4,5],[6,4,5,3,1,2]];
+      const m = shuffle([1,2,3,4,5,6]);
+      return base.map(r => r.map(v => m[v-1]));
+    }
+    function shuffle(a) { for (let i=a.length-1; i>0; i--) { 
+      const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+    function pickRandom(t, c) { return shuffle([...Array(t).keys()]).slice(0, c); }
+    function pickRandomExclude(t, c, e) { return shuffle([...Array(t).keys()].filter(i => !e.includes(i))).slice(0, c); }
+  </script>
+</body>
+</html>
