@@ -205,8 +205,24 @@
     .btn { width: 100%; padding: 10px; border-radius: 8px; font-weight: 600; 
       cursor: pointer; transition: 0.3s; border: 1px solid transparent; margin-top: 5px; 
     }
-    .cell.answered-by-you { color: var(--neon-green); text-shadow: 0 0 8px var(--neon-green); }
-    .cell.answered-by-other { color: var(--neon-orange); background: rgba(255, 149, 49, 0.1); }
+    .cell.answered-by-you { 
+      background: #142e20 !important; /* Background hijau gelap agar teks neon menyala */
+      color: var(--neon-green) !important; 
+      text-shadow: 0 0 10px var(--neon-green); 
+      box-shadow: inset 0 0 12px rgba(0, 255, 102, 0.2);
+      cursor: default; 
+    }
+    .cell.answered-by-other { 
+      background: #3a2a15 !important; /* Background jingga gelap */
+      color: var(--neon-orange) !important; 
+      text-shadow: 0 0 10px var(--neon-orange); 
+      box-shadow: inset 0 0 12px rgba(255, 172, 28, 0.2);
+      cursor: pointer; /* Indikator bahwa kotak ini AKTIF & bisa diklik */
+    }
+    .cell.answered-by-other:hover {
+      background: #4d3618 !important;
+      box-shadow: inset 0 0 15px var(--neon-orange) !important;
+    }
   </style>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -583,6 +599,7 @@
       const idx = currentSelectedCell;
       const cell = document.getElementById(`cell-${idx}`);
       const correct = sudokuSolution[Math.floor(idx/6)][idx%6];
+      const isSubsequent = cell.classList.contains('answered-by-other');
       if (parseInt(num) === correct) {
         if (soalCells.includes(idx)) {
           openQuestionModal(idx, num);
@@ -593,7 +610,7 @@
           comboCount++;
           if(comboCount > maxComboEver) maxComboEver = comboCount;
             updateComboUI();
-            submitMove(idx, num, calculatePoints(false));
+            submitMove(idx, num, calculatePoints(false, isSubsequent));
           }
       } else {
         soundWrong.play();
@@ -615,6 +632,8 @@
       optArea.style.gridTemplateColumns = "repeat(5, 1fr)"; 
       optArea.style.gap = "8px";
       optArea.innerHTML = '';
+      const cell = document.getElementById(`cell-${idx}`);
+      const isSubsequent = cell ? cell.classList.contains('answered-by-other') : false;
       ['a','b','c','d','e'].forEach(opt => {
         const b = document.createElement('button');
         b.className = 'btn btn-outline-cyan'; b.innerText = opt.toUpperCase();
@@ -626,9 +645,8 @@
             if(comboCount > maxComboEver) maxComboEver = comboCount;
               updateComboUI();
               myAnsweredSoal.push(sIdx + 1);
-              submitMove(idx, num, calculatePoints(true));
+              submitMove(idx, num, calculatePoints(true, isSubsequent));
               modal.classList.add('hidden');
-
               if (pembahasanMap[sIdx] && pembahasanMap[sIdx] !== "") {
                   document.getElementById('pembahasanText').innerHTML = `<img src="${pembahasanMap[sIdx]}" alt="Pembahasan Soal">`;
                   document.getElementById('pembahasanModal').classList.remove('hidden');
@@ -639,7 +657,6 @@
             comboCount = 0; updateComboUI();
             score -= 25; updateScore();
             modal.classList.add('hidden');
-            // Menghapus alert teks dan membiarkan penalti nilai yang menjadi feedback
           }
         };
         optArea.appendChild(b);
@@ -684,10 +701,13 @@
       }, 1000);
     }
 
-    function calculatePoints(isPhysics) {
+    function calculatePoints(isPhysics, isSubsequent) {
       let pts = isPhysics ? 50 : 25;
       if (comboCount === 2) pts += 10;
       if (comboCount >= 3) pts += 25;
+      if (isSubsequent) {
+        pts -= 1;
+      }
       return pts;
     }
 
@@ -699,8 +719,8 @@
 
     function submitMove(idx, num, pts) {
         score += pts; updateScore();
-        database.ref(`rooms/${currentRoomCode}/answers/${idx}`).set({ player: currentPlayer, number: num });
-        const type = pts > 25 ? "🧠" : "🔢";
+        database.ref(`rooms/${currentRoomCode}/answers/${currentPlayer}/${idx}`).set({ number: num })
+        const type = soalCells.includes(idx) ? "🧠" : "🔢";
         sendNotification(`${type} ${currentPlayer} menjawab kotak (+${pts})`);
     }
 
@@ -727,14 +747,24 @@
     }
 
     function listenMoves() {
-      database.ref(`rooms/${currentRoomCode}/answers`).on("value", snap => {
+      database.ref(`rooms/${currentRoomCode}/answers/${currentPlayer}`).on("value", snap => {
         const moves = snap.val() || {};
         Object.entries(moves).forEach(([idx, m]) => {
           const cell = document.getElementById(`cell-${idx}`);
           if (cell) {
             cell.textContent = m.number;
-            cell.classList.add(m.player === currentPlayer ? "answered-by-you" : "answered-by-other");
-            cell.onclick = null;
+            if (m.player === currentPlayer) {
+              cell.classList.remove("answered-by-other");
+              cell.classList.add("answered-by-you");
+              cell.onclick = null; // Terkunci untuk diri sendiri
+            } else {
+              cell.classList.remove("answered-by-you");
+              cell.classList.add("answered-by-other");
+              cell.onclick = () => { 
+                currentSelectedCell = parseInt(idx); 
+                document.getElementById('numberModal').classList.remove('hidden'); 
+              };
+            }
           }
         });
       });
