@@ -719,7 +719,7 @@
 
     function submitMove(idx, num, pts) {
         score += pts; updateScore();
-        database.ref(`rooms/${currentRoomCode}/answers/${currentPlayer}/${idx}`).set({ number: num })
+        database.ref(`rooms/${currentRoomCode}/answers/${idx}/${currentPlayer}`).set({ number: num });
         const type = soalCells.includes(idx) ? "🧠" : "🔢";
         sendNotification(`${type} ${currentPlayer} menjawab kotak (+${pts})`);
     }
@@ -747,26 +747,37 @@
     }
 
     function listenMoves() {
-      database.ref(`rooms/${currentRoomCode}/answers/${currentPlayer}`).on("value", snap => {
-        const moves = snap.val() || {};
-        Object.entries(moves).forEach(([idx, m]) => {
-          const cell = document.getElementById(`cell-${idx}`);
-          if (cell) {
-            cell.textContent = m.number;
-            if (m.player === currentPlayer) {
-              cell.classList.remove("answered-by-other");
-              cell.classList.add("answered-by-you");
-              cell.onclick = null; // Terkunci untuk diri sendiri
-            } else {
-              cell.classList.remove("answered-by-you");
-              cell.classList.add("answered-by-other");
-              cell.onclick = () => { 
-                currentSelectedCell = parseInt(idx); 
-                document.getElementById('numberModal').classList.remove('hidden'); 
-              };
-            }
+      database.ref(`rooms/${currentRoomCode}/answers`).on("value", snap => {
+        const allAnswers = snap.val() || {};
+        for (let i = 0; i < 36; i++) {
+          if (prefilledCells.includes(i)) continue; 
+          const cell = document.getElementById(`cell-${i}`);
+          if (!cell) continue;
+          const cellAnswers = allAnswers[i] || {};
+          const playersWhoAnswered = Object.keys(cellAnswers);
+          if (cellAnswers[currentPlayer]) {
+            cell.textContent = cellAnswers[currentPlayer].number;
+            cell.classList.remove("answered-by-other");
+            cell.classList.add("answered-by-you");
+            cell.onclick = null;
+          } else if (playersWhoAnswered.length > 0) {
+            const firstPlayer = playersWhoAnswered[0];
+            cell.textContent = cellAnswers[firstPlayer].number;
+            cell.classList.remove("answered-by-you");
+            cell.classList.add("answered-by-other"); 
+            cell.onclick = () => { 
+              currentSelectedCell = i; 
+              document.getElementById('numberModal').classList.remove('hidden'); 
+            };
+          } else {
+            cell.textContent = "";
+            cell.classList.remove("answered-by-you", "answered-by-other");
+            cell.onclick = () => { 
+              currentSelectedCell = i; 
+              document.getElementById('numberModal').classList.remove('hidden'); 
+            };
           }
-        });
+        }
       });
     }
     
