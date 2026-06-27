@@ -761,8 +761,7 @@
             cell.classList.add("answered-by-you");
             cell.onclick = null;
           } else if (playersWhoAnswered.length > 0) {
-            const firstPlayer = playersWhoAnswered[0];
-            cell.textContent = cellAnswers[firstPlayer].number;
+            cell.textContent = ""; // 
             cell.classList.remove("answered-by-you");
             cell.classList.add("answered-by-other"); 
             cell.onclick = () => { 
