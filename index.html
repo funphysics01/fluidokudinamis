@@ -618,6 +618,7 @@
         cell.classList.add('wrong-shake');
         setTimeout(() => cell.classList.remove('wrong-shake'), 400);
         score -= 10; updateScore();
+        sendNotification(`❌ ${currentPlayer} salah memilih angka! (-10 Poin)`);
       }
     }
 
@@ -657,6 +658,7 @@
             comboCount = 0; updateComboUI();
             score -= 25; updateScore();
             modal.classList.add('hidden');
+            sendNotification(`❌ ${currentPlayer} salah menjawab soal HOTS! (-25 Poin)`);
           }
         };
         optArea.appendChild(b);
