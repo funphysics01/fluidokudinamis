@@ -587,8 +587,20 @@
           cell.textContent = sudokuSolution[Math.floor(i/6)][i%6];
           cell.classList.add('prefilled');
         } else {
-          cell.onclick = () => { currentSelectedCell = i; 
-          document.getElementById('numberModal').classList.remove('hidden'); };
+          if (soalCells.includes(i)) {
+            cell.onclick = () => { 
+              currentSelectedCell = i;  
+              openQuestionModal(i); 
+            };
+            // Opsional: Kamu bisa tambah class CSS khusus kotak soal jika ingin diberi warna beda
+            cell.classList.add('physics-cell'); 
+          } else {
+            // Jika kotak biasa, tetap buka pilihan angka
+            cell.onclick = () => { 
+              currentSelectedCell = i; 
+              document.getElementById('numberModal').classList.remove('hidden'); 
+            };
+          }
         }
         grid.appendChild(cell);
       }
@@ -601,17 +613,13 @@
       const correct = sudokuSolution[Math.floor(idx/6)][idx%6];
       const isSubsequent = cell.classList.contains('answered-by-other');
       if (parseInt(num) === correct) {
-        if (soalCells.includes(idx)) {
-          openQuestionModal(idx, num);
-        } else {
           soundCorrect.play();
           cell.classList.add('correct-glow');
           setTimeout(() => cell.classList.remove('correct-glow'), 600);
           comboCount++;
           if(comboCount > maxComboEver) maxComboEver = comboCount;
-            updateComboUI();
-            submitMove(idx, num, calculatePoints(false, isSubsequent));
-          }
+          updateComboUI();
+          submitMove(idx, num, calculatePoints(false, isSubsequent));
       } else {
         soundWrong.play();
         comboCount = 0; updateComboUI();
@@ -622,7 +630,8 @@
       }
     }
 
-    function openQuestionModal(idx, num) {
+    function openQuestionModal(idx) {
+      const correctNum = sudokuSolution[Math.floor(idx/6)][idx%6];
       const sIdx = soalOrder[soalCells.indexOf(idx)];
       const question = soalMap[sIdx];
       const modal = document.getElementById('questionModal');
@@ -646,7 +655,7 @@
             if(comboCount > maxComboEver) maxComboEver = comboCount;
               updateComboUI();
               myAnsweredSoal.push(sIdx + 1);
-              submitMove(idx, num, calculatePoints(true, isSubsequent));
+              submitMove(idx, correctNum, calculatePoints(true, isSubsequent));
               modal.classList.add('hidden');
               if (pembahasanMap[sIdx] && pembahasanMap[sIdx] !== "") {
                   document.getElementById('pembahasanText').innerHTML = `<img src="${pembahasanMap[sIdx]}" alt="Pembahasan Soal">`;
@@ -768,14 +777,22 @@
             cell.classList.add("answered-by-other"); 
             cell.onclick = () => { 
               currentSelectedCell = i; 
-              document.getElementById('numberModal').classList.remove('hidden'); 
+              if (soalCells.includes(i)) {
+                openQuestionModal(i);
+              } else {
+                document.getElementById('numberModal').classList.remove('hidden'); 
+              }
             };
           } else {
             cell.textContent = "";
             cell.classList.remove("answered-by-you", "answered-by-other");
             cell.onclick = () => { 
               currentSelectedCell = i; 
-              document.getElementById('numberModal').classList.remove('hidden'); 
+              if (soalCells.includes(i)) {
+                openQuestionModal(i);
+              } else {
+                document.getElementById('numberModal').classList.remove('hidden'); 
+              } 
             };
           }
         }
