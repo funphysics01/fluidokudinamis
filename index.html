@@ -85,11 +85,12 @@
     }
 
     .cell.highlight-axis { 
-      background: rgba(0, 191, 255, 0.08) !important; 
+      background-color: transparent !important;
+      box-shadow: inset 0 0 0 2000px rgba(0, 191, 255, 0.12) !important;
     }
     .cell.highlight-match { 
-      background: rgba(0, 191, 255, 0.2) !important; 
-      box-shadow: inset 0 0 10px rgba(0, 191, 255, 0.3) !important;
+      background-color: transparent !important; 
+      box-shadow: inset 0 0 0 2000px rgba(0, 191, 255, 0.35) !important;
     }
 
     .btn-primary { 
@@ -800,7 +801,7 @@
           cell.dataset.answeredCount = playersWhoAnswered.length;
           if (cellAnswers[currentPlayer]) {
             cell.textContent = cellAnswers[currentPlayer].number;
-            cell.classList.remove("answered-by-other");
+            cell.classList.remove("answered-by-other", "physics-cell");
             cell.classList.add("answered-by-you");
             cell.onclick = () => {
               clearHighlight();
