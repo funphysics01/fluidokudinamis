@@ -428,16 +428,12 @@
     let pembahasanMap = {};
     let soalCells = [];
     let soalOrder = [];
-    let answerLogs = [];
-    let questionAttempts = {};
     let myAnsweredSoal = [];
     let currentSelectedCell = null;
     let playerAvatar = "";
 
     let physicsWrongCount = 0;
     let physicsCorrectCount = 0;
-    let physicsAttemptCount = 0;
-    let gameStartTime = null;
     let maxComboEver = 0;
     const soundCorrect = new Audio('https://github.com/funphysics01/Fluidoku-Statis/raw/refs/heads/main/sound/freesound_community-funny-yay-6273.mp3'); 
     const soundWrong = new Audio('https://github.com/funphysics01/Fluidoku-Statis/raw/refs/heads/main/sound/freesound_community-buzzer2-6109.mp3');
@@ -577,7 +573,6 @@
         document.getElementById("btnDownload").style.display = "block";
       } 
       startTimer();
-      gameStartTime = Date.now();
       sudokuSolution = data.sudokuSolution;
       prefilledCells = data.prefilledCells;
       soalCells = data.soalCells;
@@ -673,9 +668,6 @@
       const correctNum = sudokuSolution[Math.floor(idx/6)][idx%6];
       const sIdx = soalOrder[soalCells.indexOf(idx)];
       const question = soalMap[sIdx];
-      if (!questionAttempts[sIdx]) {
-          questionAttempts[sIdx] = 0;
-      }
       const modal = document.getElementById('questionModal');
       document.getElementById('questionText').innerHTML = question.includes("http") 
         ? `<img src="${question}" style="width:100%">` : question;
@@ -690,9 +682,6 @@
         const b = document.createElement('button');
         b.className = 'btn btn-outline-cyan'; b.innerText = opt.toUpperCase();
         b.onclick = () => {
-          questionAttempts[sIdx]++;
-          const percobaan = questionAttempts[sIdx];
-          physicsAttemptCount++;
           if (opt === jawabanMap[sIdx]) {
             soundCorrect.play();
             physicsCorrectCount++;
@@ -700,11 +689,6 @@
             if(comboCount > maxComboEver) maxComboEver = comboCount;
               updateComboUI();
               myAnsweredSoal.push(sIdx + 1);
-              answerLogs.push({
-                  soal: sIdx + 1,
-                  percobaan: percobaan,
-                  hasil: "Benar"
-              });
               submitMove(idx, correctNum, calculatePoints(true, answeredCount));
               modal.classList.add('hidden');
               if (pembahasanMap[sIdx] && pembahasanMap[sIdx] !== "") {
@@ -714,11 +698,6 @@
           } else {
             soundWrong.play();
             physicsWrongCount++;
-            answerLogs.push({
-                soal: sIdx + 1,
-                percobaan: percobaan,
-                hasil: "Salah"
-            });
             comboCount = 0; updateComboUI();
             score -= 10; updateScore();
             modal.classList.add('hidden');
@@ -783,13 +762,7 @@
 
     function submitMove(idx, num, pts) {
         score += pts; updateScore();
-        database.ref(`rooms/${currentRoomCode}/leaderboard/${currentPlayer}`).set({
-            name: currentPlayer,
-            score,
-            avatar: playerAvatar,
-            answeredQuestions: myAnsweredSoal.join('|'),
-            logs: answerLogs
-        });
+        database.ref(`rooms/${currentRoomCode}/answers/${idx}/${currentPlayer}`).set({ number: num });
         const type = soalCells.includes(idx) ? "🧠" : "🔢";
         sendNotification(`${type} ${currentPlayer} menjawab kotak (+${pts})`);
     }
@@ -799,11 +772,6 @@
       database.ref(`rooms/${currentRoomCode}/leaderboard/${currentPlayer}`).set({ 
           name: currentPlayer, score, 
           avatar: playerAvatar, answeredQuestions: myAnsweredSoal.join('|') 
-          physicsCorrect: physicsCorrectCount,
-          physicsWrong: physicsWrongCount,
-          physicsAttempt: physicsAttemptCount,
-      
-          time: totalSeconds
       });
     }
     
@@ -914,20 +882,11 @@
 
     function downloadCSV() {
       database.ref(`rooms/${currentRoomCode}/leaderboard`).once('value', snap => {
-        let csv = "Nama,No Soal,Percobaan,Hasil\n";
-        const players = snap.val() || {};
-        Object.values(players).forEach(player => {
-          if (player.logs) {
-                player.logs.forEach(log => {
-                    csv += `${player.name},${log.soal},${log.percobaan},${log.hasil}\n`;
-                });
-          }
-        });
+        let csv = "Nama,Skor,Soal\n";
+        Object.values(snap.val() || {}).forEach(e => csv += `${e.name},${e.score},"${e.answeredQuestions || '-'}"\n`);
         const blob = new Blob([csv], { type: 'text/csv' });
-        const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
-        a.download=`REKAP_FLUIDOKU_${currentRoomCode}.csv`;
-        a.click();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = `REKAP_FLUIDOKU_ROOM_${currentRoomCode}.csv`; a.click();
       });
     }
 
