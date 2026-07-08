@@ -257,6 +257,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
   
 <body>
@@ -896,12 +897,66 @@
     }
 
     function downloadCSV() {
-      database.ref(`rooms/${currentRoomCode}/leaderboard`).once('value', snap => {
-        let csv = "Nama,Skor,Soal\n";
-        Object.values(snap.val() || {}).forEach(e => csv += `${e.name},${e.score},"${e.answeredQuestions || '-'}"\n`);
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = `REKAP_FLUIDOKU_ROOM_${currentRoomCode}.csv`; a.click();
+      Promise.all([
+        database.ref(`rooms/${currentRoomCode}/leaderboard`).once('value'),
+        database.ref(`rooms/${currentRoomCode}/questionStats`).once('value')
+      ]).then(([leaderboardSnap, questionSnap]) => {
+        const leaderboard = leaderboardSnap.val() || {};
+        const questionStats = questionSnap.val() || {};
+        const sheet1 = [];
+        sheet1.push([
+          "Nama",
+          "Skor",
+          "Benar",
+          "Salah",
+          "Percobaan",
+          "Waktu",
+          "Nomor Soal Benar"
+        ]);
+        Object.values(leaderboard).forEach(e => {
+          sheet1.push([
+            e.name,
+            e.score,
+            e.correct || 0,
+            e.wrong || 0,
+            e.attempts || 0,
+            e.time || "-",
+            (e.answeredQuestions || "").replaceAll("|", ", ")
+          ]);
+        });
+        const sheet2 = [];
+        sheet2.push([
+          "No Soal",
+          "Jumlah Benar",
+          "Jumlah Salah",
+          "Total Percobaan",
+          "Rata-rata Percobaan"
+        ]);
+        Object.keys(questionStats)
+          .sort((a,b)=>Number(a)-Number(b))
+          .forEach(no => {
+            const q = questionStats[no];
+            const avg =
+              q.correct > 0
+                ? (q.attempts / q.correct).toFixed(2)
+                : 0;
+            sheet2.push([
+              no,
+              q.correct,
+              q.wrong,
+              q.attempts,
+              avg
+            ]);
+          });
+        const wb = XLSX.utils.book_new();
+        const ws1 = XLSX.utils.aoa_to_sheet(sheet1);
+        const ws2 = XLSX.utils.aoa_to_sheet(sheet2);
+        XLSX.utils.book_append_sheet(wb, ws1, "Rekap Nilai");
+        XLSX.utils.book_append_sheet(wb, ws2, "Analisis Soal");
+        XLSX.writeFile(
+          wb,
+          `REKAP_FLUIDOKU_ROOM_${currentRoomCode}.xlsx`
+        );
       });
     }
 
