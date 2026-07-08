@@ -419,6 +419,9 @@
     let currentPlayer = "";
     let score = 0;
     let comboCount = 0;
+    let correctCount = 0;
+    let wrongCount = 0; 
+    let attemptCount = 0;
     let timerInterval;
     let totalSeconds = 0;
     let sudokuSolution = [];
@@ -656,7 +659,8 @@
           submitMove(idx, num, calculatePoints(false, answeredCount));
       } else {
         soundWrong.play();
-        comboCount = 0; updateComboUI();
+        comboCount = 0; 
+        updateComboUI();
         cell.classList.add('wrong-shake');
         setTimeout(() => cell.classList.remove('wrong-shake'), 400);
         score -= 10; updateScore();
@@ -685,10 +689,13 @@
           if (opt === jawabanMap[sIdx]) {
             soundCorrect.play();
             physicsCorrectCount++;
+            correctCount++;
+            attemptCount++;
             comboCount++;
             if(comboCount > maxComboEver) maxComboEver = comboCount;
               updateComboUI();
               myAnsweredSoal.push(sIdx + 1);
+              updateQuestionStats(sIdx + 1, true);
               submitMove(idx, correctNum, calculatePoints(true, answeredCount));
               modal.classList.add('hidden');
               if (pembahasanMap[sIdx] && pembahasanMap[sIdx] !== "") {
@@ -698,6 +705,9 @@
           } else {
             soundWrong.play();
             physicsWrongCount++;
+            wrongCount++;
+            attemptCount++;
+            updateQuestionStats(sIdx + 1, false);
             comboCount = 0; updateComboUI();
             score -= 10; updateScore();
             modal.classList.add('hidden');
@@ -771,7 +781,12 @@
       document.getElementById('score').textContent = score;
       database.ref(`rooms/${currentRoomCode}/leaderboard/${currentPlayer}`).set({ 
           name: currentPlayer, score, 
-          avatar: playerAvatar, answeredQuestions: myAnsweredSoal.join('|') 
+          avatar: playerAvatar, 
+          correct: correctCount,
+          wrong: wrongCount,
+          attempts: attemptCount,
+          time: document.getElementById('playerTimer').textContent,
+          answeredQuestions: myAnsweredSoal.join('|') 
       });
     }
     
@@ -894,6 +909,25 @@
       const base = [[1,2,3,4,5,6],[4,5,6,1,2,3],[2,3,1,5,6,4],[5,6,4,2,3,1],[3,1,2,6,4,5],[6,4,5,3,1,2]];
       const m = shuffle([1,2,3,4,5,6]);
       return base.map(r => r.map(v => m[v-1]));
+    }
+    function updateQuestionStats(questionNumber, isCorrect) {
+      const ref = database.ref(`rooms/${currentRoomCode}/questionStats/${questionNumber}`);
+      ref.transaction(stats => {
+        if (!stats) {
+          stats = {
+            correct: 0,
+            wrong: 0,
+            attempts: 0
+          };
+        }
+        stats.attempts++;
+        if (isCorrect) {
+        stats.correct++;
+        } else {
+          stats.wrong++;
+        }
+        return stats;
+      });
     }
     function shuffle(a) { for (let i=a.length-1; i>0; i--) { 
       const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
