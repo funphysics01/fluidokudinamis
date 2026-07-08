@@ -745,7 +745,7 @@
       }, 1000);
     }
 
-    function calculatePoints(isPhysics, isSubsequent) {
+    function calculatePoints(isPhysics, answeredCount) {
       let pts = isPhysics ? 50 : 25;
       if (comboCount === 2) pts += 10;
       if (comboCount >= 3) pts += 25;
