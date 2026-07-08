@@ -430,9 +430,12 @@
     let soalMap = {};
     let jawabanMap = {};
     let pembahasanMap = {};
+    let materiMap = {};
     let soalCells = [];
     let soalOrder = [];
     let myAnsweredSoal = [];
+    let myWrongSoal = [];
+    let myWrongMateri = [];
     let currentSelectedCell = null;
     let playerAvatar = "";
 
@@ -595,10 +598,11 @@
         const rows = text.split('\n').slice(1);
         rows.forEach((row, idx) => {
           const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-          if (cols.length >= 3) {
-            soalMap[idx] = cols.slice(0, -2).join(',').replace(/^"|"$/g, '');
-            jawabanMap[idx] = cols[cols.length-2].replace(/^"|"$/g, '').trim().toLowerCase();
-            pembahasanMap[idx] = cols[cols.length-1].replace(/^"|"$/g, '').trim();
+          if (cols.length >= 4) {
+            soalMap[idx] = cols.slice(0, -3).join(',').replace(/^"|"$/g, '');
+            jawabanMap[idx] = cols[cols.length-3].replace(/^"|"$/g, '').trim().toLowerCase();
+            pembahasanMap[idx] = cols[cols.length-2].replace(/^"|"$/g, '').trim();
+            materiMap[idx] = cols[cols.length-1].replace(/^"|"$/g, '').trim();
           } else if (cols.length === 2) {
             soalMap[idx] = cols.slice(0, -1).join(',').replace(/^"|"$/g, '');
             jawabanMap[idx] = cols[cols.length-1].replace(/^"|"$/g, '').trim().toLowerCase();
@@ -696,6 +700,8 @@
             if(comboCount > maxComboEver) maxComboEver = comboCount;
               updateComboUI();
               myAnsweredSoal.push(sIdx + 1);
+              myWrongSoal = myWrongSoal.filter(x => x !== (sIdx + 1));
+              myWrongMateri = myWrongMateri.filter(x => x !== materiMap[sIdx]);
               updateQuestionStats(sIdx + 1, true);
               submitMove(idx, correctNum, calculatePoints(true, answeredCount));
               modal.classList.add('hidden');
@@ -708,6 +714,12 @@
             physicsWrongCount++;
             wrongCount++;
             attemptCount++;
+            if (!myWrongSoal.includes(sIdx + 1)) {
+              myWrongSoal.push(sIdx + 1);
+            }
+            if (!myWrongMateri.includes(materiMap[sIdx])) {
+              myWrongMateri.push(materiMap[sIdx]);
+            }
             updateQuestionStats(sIdx + 1, false);
             comboCount = 0; updateComboUI();
             score -= 10; updateScore();
@@ -735,6 +747,32 @@
           list.innerHTML += `<span class="achievement-badge">${b}</span>`;
         });
       }
+      let feedback = "";
+      if (correctCount >= 8) {
+        feedback =
+        "🎉 Kerja bagus! Kamu sudah menguasai sebagian besar materi Fluida Dinamis.";
+      }
+      else if (correctCount >= 5) {
+          feedback =
+          "👍 Pemahamanmu sudah cukup baik, tetapi masih ada beberapa materi yang perlu dipelajari lagi.";
+      }
+      else {
+          feedback =
+          "📚 Ayo belajar lagi! Pelajari kembali materi Fluida Dinamis dan coba mainkan game ini lagi."; 
+      }
+      if (myWrongMateri.length > 0) {
+          feedback += `
+          <br><br>
+          <b>Materi yang perlu dipelajari kembali:</b>
+          <br>• ${myWrongMateri.join("<br>• ")}`; 
+      }
+      list.innerHTML += `<div style="margin-top:15px;
+      padding:10px;
+      border-radius:8px;
+      background:rgba(255,255,255,.08);
+      font-size:12px;
+      line-height:1.6;
+      text-align:left;">${feedback}</div>`;
     }
 
     function showFinalScreen() {
