@@ -84,10 +84,12 @@
       cursor: default; 
     }
 
-    .cell.highlight-axis { background: #3d5685 !important; }
+    .cell.highlight-axis { 
+      background: rgba(0, 191, 255, 0.2) !important; 
+    }
     .cell.highlight-match { 
-      background: rgba(128, 209, 243, 0.4) !important; 
-      box-shadow: inset 0 0 10px var(--neon-cyan); 
+      background: rgba(0, 191, 255, 0.45) !important; 
+      box-shadow: inset 0 0 10px rgba(0, 191, 255, 0.6) !important;
     }
 
     .btn-primary { 
@@ -613,6 +615,10 @@
         if (prefilledCells.includes(i)) {
           cell.textContent = sudokuSolution[Math.floor(i/6)][i%6];
           cell.classList.add('prefilled');
+          cell.onclick = () => {
+            clearHighlight();
+            highlightOnHover(i);
+          };
         } else {
           if (soalCells.includes(i)) {
             cell.onclick = () => { 
@@ -638,7 +644,7 @@
       const idx = currentSelectedCell;
       const cell = document.getElementById(`cell-${idx}`);
       const correct = sudokuSolution[Math.floor(idx/6)][idx%6];
-      const isSubsequent = cell.classList.contains('answered-by-other');
+      const answeredCount = cell ? parseInt(cell.dataset.answeredCount || 0) : 0;
       if (parseInt(num) === correct) {
           soundCorrect.play();
           cell.classList.add('correct-glow');
@@ -646,7 +652,7 @@
           comboCount++;
           if(comboCount > maxComboEver) maxComboEver = comboCount;
           updateComboUI();
-          submitMove(idx, num, calculatePoints(false, isSubsequent));
+          submitMove(idx, num, calculatePoints(false, answeredCount));
       } else {
         soundWrong.play();
         comboCount = 0; updateComboUI();
@@ -670,7 +676,7 @@
       optArea.style.gap = "8px";
       optArea.innerHTML = '';
       const cell = document.getElementById(`cell-${idx}`);
-      const isSubsequent = cell ? cell.classList.contains('answered-by-other') : false;
+      const answeredCount = cell ? parseInt(cell.dataset.answeredCount || 0) : 0;
       ['a','b','c','d','e'].forEach(opt => {
         const b = document.createElement('button');
         b.className = 'btn btn-outline-cyan'; b.innerText = opt.toUpperCase();
@@ -682,7 +688,7 @@
             if(comboCount > maxComboEver) maxComboEver = comboCount;
               updateComboUI();
               myAnsweredSoal.push(sIdx + 1);
-              submitMove(idx, correctNum, calculatePoints(true, isSubsequent));
+              submitMove(idx, correctNum, calculatePoints(true, answeredCount));
               modal.classList.add('hidden');
               if (pembahasanMap[sIdx] && pembahasanMap[sIdx] !== "") {
                   document.getElementById('pembahasanText').innerHTML = `<img src="${pembahasanMap[sIdx]}" alt="Pembahasan Soal">`;
@@ -692,7 +698,7 @@
             soundWrong.play();
             physicsWrongCount++;
             comboCount = 0; updateComboUI();
-            score -= 25; updateScore();
+            score -= 10; updateScore();
             modal.classList.add('hidden');
             sendNotification(`❌ ${currentPlayer} salah menjawab soal HOTS! (-25 Poin)`);
           }
@@ -743,9 +749,7 @@
       let pts = isPhysics ? 50 : 25;
       if (comboCount === 2) pts += 10;
       if (comboCount >= 3) pts += 25;
-      if (isSubsequent) {
-        pts -= 1;
-      }
+      pts -= answeredCount;
       return pts;
     }
 
@@ -793,11 +797,15 @@
           if (!cell) continue;
           const cellAnswers = allAnswers[i] || {};
           const playersWhoAnswered = Object.keys(cellAnswers);
+          cell.dataset.answeredCount = playersWhoAnswered.length;
           if (cellAnswers[currentPlayer]) {
             cell.textContent = cellAnswers[currentPlayer].number;
             cell.classList.remove("answered-by-other");
             cell.classList.add("answered-by-you");
-            cell.onclick = null;
+            cell.onclick = () => {
+              clearHighlight();
+              highlightOnHover(i);
+            };
           } else if (playersWhoAnswered.length > 0) {
             cell.textContent = ""; // 
             cell.classList.remove("answered-by-you");
